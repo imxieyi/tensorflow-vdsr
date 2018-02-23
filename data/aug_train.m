@@ -1,7 +1,3 @@
-
-
-
-
 dataDir = '291';%fullfile('data', '291');
 mkdir('train');
 count = 0;

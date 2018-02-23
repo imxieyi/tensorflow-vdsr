@@ -11,3 +11,7 @@ data/91
 checkpoints/*ckpt*
 psnr/*ckpt*
 preserve.zip
+*.jpg
+*.png
+*.bmp
+*.bak
