@@ -1,8 +1,8 @@
-target = 'Set14';
+target = 'anime5';
 dataDir = fullfile('./', target);
 count = 0;
-f_lst = dir(fullfile(dataDir, '*.bmp'));
-folder = fullfile('test', target);
+f_lst = dir(fullfile(dataDir, '*.png'));
+folder = fullfile('test_anime', target);
 mkdir(folder);
 for f_iter = 1:numel(f_lst)
 %     disp(f_iter);

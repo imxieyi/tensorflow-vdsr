@@ -15,3 +15,5 @@ preserve.zip
 *.png
 *.bmp
 *.bak
+logs/
+checkpoints/

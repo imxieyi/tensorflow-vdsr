@@ -47,30 +47,42 @@ for i, key in enumerate(keys):
     psnr_dict = psnr_means[key]
     epochs = sorted(psnr_dict.keys())
     x_axis = []
-    bicub_mean = []
+    bicub_mean_2 = []
+    bicub_mean_3 = []
+    bicub_mean_4 = []
     vdsr_mean_2 = []
     vdsr_mean_3 = []
     vdsr_mean_4 = []
 
     for epoch in epochs:
-        print(epoch)
+        print('Epoch:', epoch)
         print(psnr_dict[epoch])
         x_axis.append(int(epoch))
-        bicub_mean.append(psnr_dict[epoch][0][0])
+        bicub_mean_2.append(psnr_dict[epoch][0][0])
+        bicub_mean_3.append(psnr_dict[epoch][1][0])
+        bicub_mean_4.append(psnr_dict[epoch][2][0])
         vdsr_mean_2.append(psnr_dict[epoch][0][1])
         vdsr_mean_3.append(psnr_dict[epoch][1][1])
         vdsr_mean_4.append(psnr_dict[epoch][2][1])
     plt.figure(i)
-    print(key)
-    print(len(x_axis), len(bicub_mean), len(vdsr_mean_2))
-    print(vdsr_mean_2)
-    print("x2", np.argmax(vdsr_mean_2), np.max(vdsr_mean_2))
-    print("x3", np.argmax(vdsr_mean_3), np.max(vdsr_mean_3))
-    print("x4", np.argmax(vdsr_mean_4), np.max(vdsr_mean_4))
-    lines_bicub = plt.plot(vdsr_mean_2, 'g')
-    lines_bicub = plt.plot(vdsr_mean_4, 'b', vdsr_mean_3, 'y')
-    plt.setp(lines_bicub, linewidth=3.0)
-    #plt.show()
+    #print(key)
+    #print(len(x_axis), len(bicub_mean), len(vdsr_mean_2))
+    #print(vdsr_mean_2)
+    print("bi2x", np.argmax(bicub_mean_2), np.max(bicub_mean_2))
+    print("bi3x", np.argmax(bicub_mean_3), np.max(bicub_mean_3))
+    print("bi4x", np.argmax(bicub_mean_4), np.max(bicub_mean_4))
+    print("ps2x", np.argmax(vdsr_mean_2), np.max(vdsr_mean_2))
+    print("ps3x", np.argmax(vdsr_mean_3), np.max(vdsr_mean_3))
+    print("ps4x", np.argmax(vdsr_mean_4), np.max(vdsr_mean_4))
+    lines_bicub = plt.plot(vdsr_mean_2, 'r', label='2x_vdsr')
+    lines_bicub = plt.plot(vdsr_mean_3, 'g', label='3x_vdsr')
+    lines_bicub = plt.plot(vdsr_mean_4, 'b', label='4x_vdsr')
+    lines_bicub = plt.plot(bicub_mean_2, 'r', label='2x_bicubic', linestyle='--')
+    lines_bicub = plt.plot(bicub_mean_3, 'g', label='3x_bicubic', linestyle='--')
+    lines_bicub = plt.plot(bicub_mean_4, 'b', label='4x_bicubic', linestyle='--')
+    plt.legend(loc='upper left')
+    plt.show()
+    print(psnr_dict)
 
 """
 psnr_means :

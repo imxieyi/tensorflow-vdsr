@@ -8,23 +8,27 @@ import scipy.io
 from MODEL import model
 from PSNR import psnr
 from TEST import test_VDSR
+import datetime
 #from MODEL_FACTORIZED import model_factorized
-DATA_PATH = "./data/train/"
+DATA_PATH = "./data/train_anime/"
 IMG_SIZE = (41, 41)
 BATCH_SIZE = 64
 BASE_LR = 0.0001
 LR_RATE = 0.1
 LR_STEP_SIZE = 120
 MAX_EPOCH = 120
-
 USE_QUEUE_LOADING = True
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model_path")
+parser.add_argument('--model_path')
+parser.add_argument('--start_epoch', type=int)
 args = parser.parse_args()
 model_path = args.model_path
+start_epoch = 0
+if args.start_epoch != None:
+    start_epoch = args.start_epoch
 
-TEST_DATA_PATH = "./data/test/"
+TEST_DATA_PATH = "./data/test_anime/"
 
 def get_train_list(data_path):
     l = glob.glob(os.path.join(data_path,"*"))
@@ -160,10 +164,10 @@ if __name__ == '__main__':
             sys.exit(1)
         original_sigint = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal_handler)
-
+        
         if USE_QUEUE_LOADING:
             # create threads
-            num_thread=8
+            num_thread=20
             coord = tf.train.Coordinator()
             for i in range(num_thread):
                 length = len(train_list)/num_thread
@@ -172,22 +176,22 @@ if __name__ == '__main__':
                 t.start()
             print(("num thread:" , len(threads)))
 
-            for epoch in range(0, MAX_EPOCH):
+            for epoch in range(start_epoch, MAX_EPOCH):
                 max_step=len(train_list)//BATCH_SIZE
                 for step in range(max_step):
                     _,l,output,lr, g_step, summary = sess.run([opt, loss, train_output, learning_rate, global_step, merged])
-                    print(("[epoch %2.4f] loss %.4f\t lr %.5f"%(epoch+(float(step)*BATCH_SIZE/len(train_list)), np.sum(l)/BATCH_SIZE, lr)))
+                    print('{} [epoch {:2.4f}] loss {:.4f}\t lr {:.5f}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), float(epoch+float(step)*BATCH_SIZE/len(train_list)), np.sum(l)/BATCH_SIZE, lr))
                     file_writer.add_summary(summary, step+epoch*max_step)
                     #print "[epoch %2.4f] loss %.4f\t lr %.5f\t norm %.2f"%(epoch+(float(step)*BATCH_SIZE/len(train_list)), np.sum(l)/BATCH_SIZE, lr, norm)
                 saver.save(sess, "./checkpoints/VDSR_adam_epoch_%03d.ckpt" % epoch ,global_step=global_step)
         else:
-            for epoch in range(0, MAX_EPOCH):
+            for epoch in range(start_epoch, MAX_EPOCH):
                 for step in range(len(train_list)//BATCH_SIZE):
                     offset = step*BATCH_SIZE
                     input_data, gt_data, cbcr_data = get_image_batch(train_list, offset, BATCH_SIZE)
                     feed_dict = {train_input: input_data, train_gt: gt_data}
                     _,l,output,lr, g_step = sess.run([opt, loss, train_output, learning_rate, global_step], feed_dict=feed_dict)
-                    print(("[epoch %2.4f] loss %.4f\t lr %.5f"%(epoch+(float(step)*BATCH_SIZE/len(train_list)), np.sum(l)/BATCH_SIZE, lr)))
+                    print('{} [epoch {:2.4f}] loss {:.4f}\t lr {:.5f}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), float(epoch+float(step)*BATCH_SIZE/len(train_list)), np.sum(l)/BATCH_SIZE, lr))
                     del input_data, gt_data, cbcr_data
 
                 saver.save(sess, "./checkpoints/VDSR_const_clip_0.01_epoch_%03d.ckpt" % epoch ,global_step=global_step)
