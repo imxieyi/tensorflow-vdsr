@@ -35,7 +35,7 @@ python PLOT.py
 ```
 ### Scale Image
 ```shell
-python .\construct-tf.py input.png -m checkpoints/VDSR_adam_epoch_xxx.ckpt-xxxx -o output.png -s 2
+python construct-tf.py input.png -m checkpoints/VDSR_adam_epoch_xxx.ckpt-xxxx -o output.png -s 2
 ```
 
 ## Result

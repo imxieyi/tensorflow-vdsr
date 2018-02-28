@@ -41,50 +41,29 @@ with tf.Session() as sess:
     saver.restore(sess, args.m)
 
     bicubic_out = input_image.resize((width*scale_factor, height*scale_factor), Image.BICUBIC)
-
-    raw_bicubic_out = np.array(bicubic_out.getdata())
-
-    raw_bicubic_out = raw_bicubic_out.reshape(out_height, out_width, len(bicubic_out.getbands()))
-
-    out_bicubic_rgb = raw_bicubic_out[:,:,0:3]
-    out_bicubic_a = raw_bicubic_out[:,:,3]
-
-    # RGB -> YUV
-    # http://www.pythonexample.com/snippet/python/rgb2yuv_yuv2rgbpy_quasimondo_python
-    def RGB2YUV(rgb):
-        m = np.array([[ 0.29900, -0.16874,  0.50000],
-                     [0.58700, -0.33126, -0.41869],
-                     [ 0.11400, 0.50000, -0.08131]])
-        yuv = np.dot(rgb, m)
-        yuv[:,:,1:] += 128.0
-        return yuv
-    out_bicubic_yuv = RGB2YUV(out_bicubic_rgb)
-    out_bicubic_y = out_bicubic_yuv[:,:,0:1].reshape(out_height, out_width)
+    
+    yuv_bicubic_out = bicubic_out.convert('YCbCr')
+    raw_yuv_bicubic_out = np.ndarray((out_height, out_width, 3), 'u1', yuv_bicubic_out.tobytes())
+    #raw_yuv_bicubic_out = np.array(yuv_bicubic_out.getdata())
+    #raw_yuv_bicubic_out = raw_yuv_bicubic_out.reshape(out_height, out_width, len(yuv_bicubic_out.getbands()))
+    out_bicubic_y = raw_yuv_bicubic_out[:,:,0:1].reshape(out_height, out_width)
 
     out_vdsr_y = sess.run([output_tensor], feed_dict={
                 input_tensor: np.resize(out_bicubic_y, (1, out_bicubic_y.shape[0], out_bicubic_y.shape[1], 1))
             })
     out_vdsr_y = np.resize(out_vdsr_y, (out_bicubic_y.shape[0], out_bicubic_y.shape[1], 1))
 
+    # To prevent black and white blocks on output image
+    # https://en.wikipedia.org/wiki/YCbCr
+    out_vdsr_y = out_vdsr_y.clip(16, 235)
+    
     import copy
-    out_vdsr_yuv = copy.deepcopy(out_bicubic_yuv)
+    out_vdsr_yuv = copy.deepcopy(raw_yuv_bicubic_out)
 
     out_vdsr_yuv[:,:,0:1] = out_vdsr_y
 
-    # YUV -> RGB
-    def YUV2RGB( yuv ):
-        m = np.array([[ 1.0, 1.0, 1.0],
-                     [-0.000007154783816076815, -0.3441331386566162, 1.7720025777816772],
-                     [ 1.4019975662231445, -0.7141380310058594 , 0.00001542569043522235] ])
-        rgb = np.dot(yuv,m)
-        rgb[:,:,0]-=179.45477266423404
-        rgb[:,:,1]+=135.45870971679688
-        rgb[:,:,2]-=226.8183044444304
-        return rgb.clip(0, 255).astype('uint8')
-    
-    out_vdsr_rgb = YUV2RGB(out_vdsr_yuv)
-
-    out_image_vdsr = Image.fromarray(out_vdsr_rgb, 'RGB')
+    out_image_vdsr = Image.fromarray(out_vdsr_yuv, 'YCbCr')
+    out_image_vdsr = out_image_vdsr.convert('RGB')
 
     if args.o.endswith('png'):
         out_image_vdsr.save(args.o, 'PNG')
