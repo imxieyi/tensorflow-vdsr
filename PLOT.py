@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pickle, glob
 import numpy as np
 import sys
+import re
 psnr_prefix = './psnr/*'
 psnr_paths = sorted(glob.glob(psnr_prefix))
 
@@ -54,6 +55,19 @@ for i, key in enumerate(keys):
     vdsr_mean_3 = []
     vdsr_mean_4 = []
 
+    def atoi(text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(text):
+        '''
+        alist.sort(key=natural_keys) sorts in human order
+        http://nedbatchelder.com/blog/200712/human_sorting.html
+        (See Toothy's implementation in the comments)
+        '''
+        return [ atoi(c) for c in re.split('(\d+)', text) ]
+
+    epochs.sort(key=natural_keys)
+    
     for epoch in epochs:
         print('Epoch:', epoch)
         print(psnr_dict[epoch])

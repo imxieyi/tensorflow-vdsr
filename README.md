@@ -12,6 +12,7 @@ This is a Tensorflow implementation for ["Accurate Image Super-Resolution Using 
 - PSNR.py : define how to calculate PSNR in python
 - TEST.py : test all the saved checkpoints
 - PLOT.py : plot the test result from TEST.py
+- construct-tf.py: scale image file using given checkpoint
 
 ## How To Use
 ### Training
@@ -31,6 +32,10 @@ python TEST.py
 ```shell
 # plot the psnr result stored in ./psnr directory
 python PLOT.py
+```
+### Scale Image
+```shell
+python .\construct-tf.py input.png -m checkpoints/VDSR_adam_epoch_xxx.ckpt-xxxx -o output.png -s 2
 ```
 
 ## Result

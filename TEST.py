@@ -9,7 +9,7 @@ import pickle
 from MODEL import model
 #from MODEL_FACTORIZED import model_factorized
 import time
-DATA_PATH = "./data/test_anime/"
+DATA_PATH = "./data/test_anime_small/"
 
 import argparse
 
@@ -42,7 +42,7 @@ def get_test_image(test_list, offset, batch_size):
         scale_list.append(pair[2])
     return input_list, gt_list, scale_list
 def test_VDSR_with_sess(epoch, ckpt_path, data_path,sess):
-    folder_list = glob.glob(os.path.join(data_path, 'anime*'))
+    folder_list = glob.glob(os.path.join(data_path, '*'))
     print('folder_list', folder_list)
     saver.restore(sess, ckpt_path)
     
@@ -54,10 +54,10 @@ def test_VDSR_with_sess(epoch, ckpt_path, data_path,sess):
             input_list, gt_list, scale_list = get_test_image(img_list, i, 1)
             input_y = input_list[0]
             gt_y = gt_list[0]
-            #start_t = time.time()
+            start_t = time.time()
             img_vdsr_y = sess.run([output_tensor], feed_dict={input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 1))})
             img_vdsr_y = np.resize(img_vdsr_y, (input_y.shape[0], input_y.shape[1]))
-            #end_t = time.time()
+            end_t = time.time()
             #print("end_t",end_t,"start_t",start_t)
             print("time consumption",end_t-start_t)
             print("image_size", input_y.shape)
@@ -91,5 +91,7 @@ if __name__ == '__main__':
             #if epoch<60:
             #    continue
             model_ckpt = model_ckpt.split('.meta')[0]
+            if os.path.exists('psnr/%s' % os.path.basename(model_ckpt)):
+                continue
             print("Testing model",model_ckpt)
             test_VDSR_with_sess(80, model_ckpt, DATA_PATH,sess)

@@ -17,3 +17,4 @@ preserve.zip
 *.bak
 logs/
 checkpoints/
+*.ipynb
