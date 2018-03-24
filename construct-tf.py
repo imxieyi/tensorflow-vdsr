@@ -42,28 +42,62 @@ with tf.Session() as sess:
 
     bicubic_out = input_image.resize((width*scale_factor, height*scale_factor), Image.BICUBIC)
     
-    yuv_bicubic_out = bicubic_out.convert('YCbCr')
-    raw_yuv_bicubic_out = np.ndarray((out_height, out_width, 3), 'u1', yuv_bicubic_out.tobytes())
-    #raw_yuv_bicubic_out = np.array(yuv_bicubic_out.getdata())
-    #raw_yuv_bicubic_out = raw_yuv_bicubic_out.reshape(out_height, out_width, len(yuv_bicubic_out.getbands()))
-    out_bicubic_y = raw_yuv_bicubic_out[:,:,0:1].reshape(out_height, out_width)
+    # ITU-R BT.601
+    # https://en.wikipedia.org/wiki/YCbCr
+    # RGB -> YCbCr
+    def rgb2ycbcr(rgb):
+        m = np.array([[ 65.481, 128.553, 24.966],
+                      [-37.797, -74.203, 112],
+                      [ 112, -93.786, -18.214]])
+        shape = rgb.shape
+        if len(shape) == 3:
+            rgb = rgb.reshape((shape[0] * shape[1], 3))
+        yuv = np.dot(rgb, m.transpose() / 255.)
+        yuv[:,0] += 16.
+        yuv[:,1:] += 128.
+        return yuv.reshape(shape)
+    
+    raw_bicubic_out = np.array(bicubic_out.getdata(), dtype=np.float32)
+    rgb_bicubic_out = raw_bicubic_out[:,0:3]
+    yuv_bicubic_out = rgb2ycbcr(rgb_bicubic_out).reshape((out_height, out_width, 3))
+
+    # https://cn.mathworks.com/matlabcentral/answers/42979-convert-rgb-to-ycbcr
+    # Y in range [16/256 235/256]
+    out_bicubic_y = yuv_bicubic_out[:,:,0:1] / 256.
 
     out_vdsr_y = sess.run([output_tensor], feed_dict={
                 input_tensor: np.resize(out_bicubic_y, (1, out_bicubic_y.shape[0], out_bicubic_y.shape[1], 1))
             })
     out_vdsr_y = np.resize(out_vdsr_y, (out_bicubic_y.shape[0], out_bicubic_y.shape[1], 1))
+    out_vdsr_y = out_vdsr_y * 256.
 
     # To prevent black and white blocks on output image
     # https://en.wikipedia.org/wiki/YCbCr
-    out_vdsr_y = out_vdsr_y.clip(16, 235)
-    
+
+    out_vdsr_y = out_vdsr_y.clip(16., 235.)
+
+    # ITU-R BT.601
+    # https://en.wikipedia.org/wiki/YCbCr
+    # YUV -> RGB
+    def ycbcr2rgb(yuv):
+        m = np.array([[ 65.481, 128.553, 24.966],
+                      [-37.797, -74.203, 112],
+                      [ 112, -93.786, -18.214]])
+        shape = yuv.shape
+        if len(shape) == 3:
+            yuv = yuv.reshape((shape[0] * shape[1], 3))
+        rgb = copy.deepcopy(yuv)
+        rgb[:,0] -= 16.
+        rgb[:,1:] -= 128.
+        rgb = np.dot(rgb, np.linalg.inv(m.transpose()) * 255.)
+        return np.round(rgb.clip(0, 255)).reshape(shape).astype('uint8')
+        
     import copy
-    out_vdsr_yuv = copy.deepcopy(raw_yuv_bicubic_out)
+    out_vdsr_yuv = copy.deepcopy(yuv_bicubic_out)
 
     out_vdsr_yuv[:,:,0:1] = out_vdsr_y
 
-    out_image_vdsr = Image.fromarray(out_vdsr_yuv, 'YCbCr')
-    out_image_vdsr = out_image_vdsr.convert('RGB')
+    out_image_vdsr = Image.fromarray(ycbcr2rgb(out_vdsr_yuv), 'RGB')
 
     if args.o.endswith('png'):
         out_image_vdsr.save(args.o, 'PNG')
